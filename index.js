@@ -7,7 +7,7 @@ import axios from "axios";
 import randomUseragent from 'random-useragent';
 
 const app = express()
-const port = 1234
+const port = 3000
 
 randomUseragent.getRandom();
 //console.log(randomUseragent)
@@ -37,7 +37,7 @@ app.get('/:movieTMDBid', async(req, res) => {
     const movieId = req.params.movieTMDBid;
     
     const sourcesId = await getVidsrcMovieSourcesId(movieId);
-    console.log("sourcesId: ",sourcesId); 
+    //console.log("sourcesId: ",sourcesId); 
     if(!sourcesId) res.status(404).send({
         status: 404,
         return: "Oops movie not available"
@@ -45,7 +45,7 @@ app.get('/:movieTMDBid', async(req, res) => {
 
     const sources = await getVidsrcSources(sourcesId);
     
-    console.log("sources",sources);
+    //console.log("sources",sources);
 
     const vidplay = sources.data.result.find((v) => v.title.toLowerCase() === 'f2cloud');
 
@@ -53,13 +53,13 @@ app.get('/:movieTMDBid', async(req, res) => {
 
     const vidplayLink = await getVidsrcSourceDetails(vidplay.id);
 
-    console.log("vidplayLink: ", vidplayLink);
+    //console.log("vidplayLink: ", vidplayLink);
     
     const key = await encodeId(vidplayLink.split('/e/')[1].split('?')[0]);
     const data = await getFutoken(key, vidplayLink);
 
-    console.log("key: ",key);
-    console.log("data: ",data);
+    //console.log("key: ",key);
+    //console.log("data: ",data);
 
     let subtitles;
     //if(vidplayLink.includes('sub.info='))
@@ -74,10 +74,10 @@ app.get('/:movieTMDBid', async(req, res) => {
 		//console.log(sourcesCode)
     }
 
-    console.log("subtitles: ",subtitles);
+    //console.log("subtitles: ",subtitles);
 
 
-    console.log("fuu: ",`https://vid2v11.site/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`);
+    //console.log("fuu: ",`https://vid2v11.site/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`);
 
 
     const response = await axios.get(`https://vid2v11.site/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`, {
@@ -94,7 +94,7 @@ app.get('/:movieTMDBid', async(req, res) => {
     
     const result = response.data.result;
 
-    console.log("result: ",response.data);
+    //console.log("result: ",response.data);
 
     if (!result && typeof result !== 'object') {
         throw new Error('an error occured');
