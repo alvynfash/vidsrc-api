@@ -5,22 +5,27 @@ import { getVidsrcMovieSourcesId, getVidsrcShowSourcesId, getVidsrcSourceDetails
 import { encodeId, getFutoken } from "./src/utils.js";
 import axios from "axios";
 import randomUseragent from 'random-useragent';
+import url from 'url';
+import cors from 'cors';
 
 const app = express()
-const port = 3000
+const port = 3001
+
+const corsOptions = {
+    origin: '*',
+    methods: '*',
+    allowedHeaders: '*',
+    exposedHeaders: '*',
+    credentials: true
+};
+
+app.use(cors(corsOptions));
 
 randomUseragent.getRandom();
 //console.log(randomUseragent)
 
 var ip = (Math.floor(Math.random() * 255) + 1)+"."+(Math.floor(Math.random() * 255))+"."+(Math.floor(Math.random() * 255))+"."+(Math.floor(Math.random() * 255));
 //console.log(ip)
-
-//app.use(function (req, res, next) {
-    //if (req.originalUrl && req.originalUrl.split("/").pop() === 'favicon.ico') {
-        //return res.sendStatus(204);
-    //}
-    //next();
-//});
 
 app.get('/', (req, res) => {
     res.status(200).json({
@@ -35,66 +40,52 @@ app.get('/', (req, res) => {
 
 app.get('/:movieTMDBid', async(req, res) => {
     const movieId = req.params.movieTMDBid;
-    
+
     const sourcesId = await getVidsrcMovieSourcesId(movieId);
-    //console.log("sourcesId: ",sourcesId); 
     if(!sourcesId) res.status(404).send({
         status: 404,
         return: "Oops movie not available"
     });
 
     const sources = await getVidsrcSources(sourcesId);
-    
-    //console.log("sources",sources);
 
-    const vidplay = sources.data.result.find((v) => v.title.toLowerCase() === 'f2cloud');
+    const vidplay = sources.data.result.find((v) => v.title === 'F2Cloud');
+    //console.log(vidplay)
 
     if(!vidplay) res.status(404).json('vidplay stream not found for vidsrc');
 
     const vidplayLink = await getVidsrcSourceDetails(vidplay.id);
 
-    //console.log("vidplayLink: ", vidplayLink);
+const parsedUrl = url.parse(vidplayLink);
+const host = parsedUrl.host;
+
+//console.log(host);
     
     const key = await encodeId(vidplayLink.split('/e/')[1].split('?')[0]);
     const data = await getFutoken(key, vidplayLink);
 
-    //console.log("key: ",key);
-    //console.log("data: ",data);
-
     let subtitles;
-    //if(vidplayLink.includes('sub.info='))
+    if(vidplayLink.includes('sub.info='))
     {
-        //const subtitleLink = vidplayLink.split('?sub.info=')[1].split('&')[0];
-        //const subtitlesFetch = await axios.get(decodeURIComponent(subtitleLink));
-		const data = await axios.get(`${vidsrcBase}/embed/movie/${movieId}`);
-		const doc = load(data.data);
-        const sourcesCode = doc('a[data-id]').attr('data-id');
-        const subtitlesFetch = await axios.get(`https://vidsrc.to/ajax/embed/episode/${sourcesCode}/subtitles`);
+        const subtitleLink = vidplayLink.split('?sub.info=')[1].split('&')[0];
+        const subtitlesFetch = await axios.get(decodeURIComponent(subtitleLink));
         subtitles = await subtitlesFetch.data;
 		//console.log(sourcesCode)
     }
 
-    //console.log("subtitles: ",subtitles);
-
-
-    //console.log("fuu: ",`https://vid2v11.site/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`);
-
-
-    const response = await axios.get(`https://vid2v11.site/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`, {
+    const response = await axios.get(`https://${host}/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`, {
         params: {
             v: Date.now().toString(),
         },
         headers: {
 			"Origin": ip,
             "Referer": vidplayLink,
-			"Host": "vid2v11.site",
+			"Host": host,
 			"User-Agent": randomUseragent
         }
     });
-    
-    const result = response.data.result;
 
-    //console.log("result: ",response.data);
+    const result = response.data.result;
 
     if (!result && typeof result !== 'object') {
         throw new Error('an error occured');
@@ -107,7 +98,7 @@ app.get('/:movieTMDBid', async(req, res) => {
     })
 
     res.status(200).json({
-        source,subtitles
+        vidplayLink, source, subtitles
     })
 })
 
@@ -126,35 +117,33 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
 
     const sources = await getVidsrcSources(sourcesId);
 
-    const vidplay = sources.data.result.find((v) => v.title.toLowerCase() === 'f2cloud');
+    const vidplay = sources.data.result.find((v) => v.title === 'F2Cloud');
 
     if(!vidplay) res.status(404).json('vidplay stream not found for vidsrc');
 
     const vidplayLink = await getVidsrcSourceDetails(vidplay.id);
+	const parsedUrl = url.parse(vidplayLink);
+   const host = parsedUrl.host;
     
     const key = await encodeId(vidplayLink.split('/e/')[1].split('?')[0]);
     const data = await getFutoken(key, vidplayLink);
 
     let subtitles;
-    //if(vidplayLink.includes('sub.info='))
+    if(vidplayLink.includes('sub.info='))
     {
-        //const subtitleLink = vidplayLink.split('?sub.info=')[1].split('&')[0];
-        //const subtitlesFetch = await axios.get(decodeURIComponent(subtitleLink));
-		const data = await axios.get(`${vidsrcBase}/embed/tv/${showTMDBid}/${seasonNum}/${episodeNum}`);
-        const doc = load(data.data);
-        const sourcesCode = doc('a[data-id]').attr('data-id');
-        const subtitlesFetch = await axios.get(`https://vidsrc.to/ajax/embed/episode/${sourcesCode}/subtitles`);
+        const subtitleLink = vidplayLink.split('?sub.info=')[1].split('&')[0];
+        const subtitlesFetch = await axios.get(decodeURIComponent(subtitleLink));
         subtitles = await subtitlesFetch.data;
     }
 
-    const response = await axios.get(`https://vid2v11.site/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`, {
+    const response = await axios.get(`https://${host}/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`, {
         params: {
             v: Date.now().toString(),
         },
         headers: {
 			"Origin": ip,
             "Referer": vidplayLink,
-			"Host": "vid2v11.site",
+			"Host": host,
 			"User-Agent": randomUseragent
         }
     });
@@ -172,7 +161,7 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
     })
 
     res.status(200).json({
-        source,subtitles
+        vidplayLink, source, subtitles
     })
 })
 
