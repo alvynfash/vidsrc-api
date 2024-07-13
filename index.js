@@ -9,7 +9,7 @@ import url from 'url';
 import cors from 'cors';
 
 const app = express()
-const port = 3001
+const port = process.env.PORT || 3001;
 
 const corsOptions = {
     origin: '*',
@@ -24,7 +24,7 @@ app.use(cors(corsOptions));
 randomUseragent.getRandom();
 //console.log(randomUseragent)
 
-var ip = (Math.floor(Math.random() * 255) + 1)+"."+(Math.floor(Math.random() * 255))+"."+(Math.floor(Math.random() * 255))+"."+(Math.floor(Math.random() * 255));
+var ip = (Math.floor(Math.random() * 255) + 1) + "." + (Math.floor(Math.random() * 255)) + "." + (Math.floor(Math.random() * 255)) + "." + (Math.floor(Math.random() * 255));
 //console.log(ip)
 
 app.get('/', (req, res) => {
@@ -38,11 +38,11 @@ app.get('/', (req, res) => {
     })
 })
 
-app.get('/:movieTMDBid', async(req, res) => {
+app.get('/:movieTMDBid', async (req, res) => {
     const movieId = req.params.movieTMDBid;
 
     const sourcesId = await getVidsrcMovieSourcesId(movieId);
-    if(!sourcesId) res.status(404).send({
+    if (!sourcesId) res.status(404).send({
         status: 404,
         return: "Oops movie not available"
     });
@@ -52,25 +52,24 @@ app.get('/:movieTMDBid', async(req, res) => {
     const vidplay = sources.data.result.find((v) => v.title === 'F2Cloud');
     //console.log(vidplay)
 
-    if(!vidplay) res.status(404).json('vidplay stream not found for vidsrc');
+    if (!vidplay) res.status(404).json('vidplay stream not found for vidsrc');
 
     const vidplayLink = await getVidsrcSourceDetails(vidplay.id);
 
-const parsedUrl = url.parse(vidplayLink);
-const host = parsedUrl.host;
+    const parsedUrl = url.parse(vidplayLink);
+    const host = parsedUrl.host;
 
-//console.log(host);
-    
+    //console.log(host);
+
     const key = await encodeId(vidplayLink.split('/e/')[1].split('?')[0]);
     const data = await getFutoken(key, vidplayLink);
 
     let subtitles;
-    if(vidplayLink.includes('sub.info='))
-    {
+    if (vidplayLink.includes('sub.info=')) {
         const subtitleLink = vidplayLink.split('?sub.info=')[1].split('&')[0];
         const subtitlesFetch = await axios.get(decodeURIComponent(subtitleLink));
         subtitles = await subtitlesFetch.data;
-		//console.log(sourcesCode)
+        //console.log(sourcesCode)
     }
 
     const response = await axios.get(`https://${host}/mediainfo/${data}?${vidplayLink.split('?')[1]}&autostart=true`, {
@@ -78,10 +77,10 @@ const host = parsedUrl.host;
             v: Date.now().toString(),
         },
         headers: {
-			"Origin": ip,
+            "Origin": ip,
             "Referer": vidplayLink,
-			"Host": host,
-			"User-Agent": randomUseragent
+            "Host": host,
+            "User-Agent": randomUseragent
         }
     });
 
@@ -92,7 +91,7 @@ const host = parsedUrl.host;
     }
 
     const source = result.sources?.[0]?.file;
-    if(!source) res.status(404).send({
+    if (!source) res.status(404).send({
         status: 404,
         return: "Oops reached rate limit of this api"
     })
@@ -102,7 +101,7 @@ const host = parsedUrl.host;
     })
 })
 
-app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
+app.get('/:showTMDBid/:seasonNum/:episodeNum', async (req, res) => {
     const showTMDBid = req.params.showTMDBid;
     const seasonNum = req.params.seasonNum;
     const episodeNum = req.params.episodeNum;
@@ -110,7 +109,7 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
     //console.log(showTMDBid,seasonNum,episodeNum)
 
     const sourcesId = await getVidsrcShowSourcesId(showTMDBid, seasonNum, episodeNum);
-    if(!sourcesId) res.status(404).send({
+    if (!sourcesId) res.status(404).send({
         status: 404,
         return: "Oops show not available"
     });
@@ -119,18 +118,17 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
 
     const vidplay = sources.data.result.find((v) => v.title === 'F2Cloud');
 
-    if(!vidplay) res.status(404).json('vidplay stream not found for vidsrc');
+    if (!vidplay) res.status(404).json('vidplay stream not found for vidsrc');
 
     const vidplayLink = await getVidsrcSourceDetails(vidplay.id);
-	const parsedUrl = url.parse(vidplayLink);
-   const host = parsedUrl.host;
-    
+    const parsedUrl = url.parse(vidplayLink);
+    const host = parsedUrl.host;
+
     const key = await encodeId(vidplayLink.split('/e/')[1].split('?')[0]);
     const data = await getFutoken(key, vidplayLink);
 
     let subtitles;
-    if(vidplayLink.includes('sub.info='))
-    {
+    if (vidplayLink.includes('sub.info=')) {
         const subtitleLink = vidplayLink.split('?sub.info=')[1].split('&')[0];
         const subtitlesFetch = await axios.get(decodeURIComponent(subtitleLink));
         subtitles = await subtitlesFetch.data;
@@ -141,10 +139,10 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
             v: Date.now().toString(),
         },
         headers: {
-			"Origin": ip,
+            "Origin": ip,
             "Referer": vidplayLink,
-			"Host": host,
-			"User-Agent": randomUseragent
+            "Host": host,
+            "User-Agent": randomUseragent
         }
     });
 
@@ -155,7 +153,7 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
     }
 
     const source = result.sources?.[0]?.file;
-    if(!source) res.status(404).send({
+    if (!source) res.status(404).send({
         status: 404,
         return: "Oops reached rate limit of this api"
     })
@@ -166,5 +164,5 @@ app.get('/:showTMDBid/:seasonNum/:episodeNum', async(req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`Example app listening on port http://localhost:${port}`)
+    console.log(`Example app listening on port: ${port}`)
 })
